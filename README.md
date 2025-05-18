@@ -1,2 +1,3 @@
-# Construcao_de_Compiladores
-Códigos e projetos referentes a disciplina de Construção de Compiladores do curso Bacharelado em Ciência da Computação
+# Analisador Sintático em C
+
+Construção de um Analisador Sintático em C como sendo o projeto final da disciplina de Construção de Compiladores.

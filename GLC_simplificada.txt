@@ -1,0 +1,56 @@
+GLC para linguagem fictícia de programação
+Legenda:
+P  - Programa
+D  - Declaração
+DV - Declaração de Variável
+DF - Declaração de Função
+T  - Tipo
+B  - Bloco
+EC – Estrutura de Controle
+E  - Expressão
+EL - Expressão Lógica (AND)
+ER - Expressão Relacional
+EA - Expressão Aritmética
+TM - Termo Multiplicativo
+F  - Fator / Unário
+ID - Identificador
+N  - Número (int/float)
+PA - Parâmetros
+A  - Argumentos
+COM - Comentário
+EC - Estrutura de Controle
+Por – Operador Relacional
+CL - CaseLista
+CD – CaseDecl
+ARG - Argumento
+
+Produções
+
+P → D*
+D → DV | DF | COM | EC
+DV → T ID ; | T ID = E ;
+DF → T ID ( PA ) B
+PA → T ID | T ID [] | T ... ID | PA , PA | ε
+T → int | float | double | char | boolean | void
+COM → // texto | /* texto */
+B → { D* }
+E → ER
+EL → ER EL'
+EL' → && ER EL' | || ER EL' | ε
+ER → E3 OPr EA | EA
+EA → EA + TM | EA - TM | TM
+TM → TM * F | TM / F | TM % F | F
+F → -F | ++F | --F | ( E ) | ID | N | TEXTO
+OPr → > | >= | < | <= | != | ==
+EC → if ( E ) B
+     | if ( E ) B else B
+     | while ( E ) B
+     | for ( E ; E ; E ) B
+     | switch ( E ) CL
+     | break ;
+     | continue ;
+     | return E ;
+CL → CD*
+CD → case E : B | default : B
+A → ID [ E ] | ID [ ]
+ARG → E | E , ARG |

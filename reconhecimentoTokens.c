@@ -37,7 +37,7 @@ int main() {
     printf("Carregados %d tokens do arquivo.\n\n", tokenAtual);
     
     // Buscar alguns tokens para teste
-    const char* encontrarToken[] = {"INT", "IF", "COMP", "ID", "NUM_INT"};
+    const char* encontrarToken[] = {"INT", "IF", "ID", "NUM_INT"};
     int numTokensToFind = sizeof(encontrarToken) / sizeof(encontrarToken[0]);
     
     for (int i = 0; i < numTokensToFind; i++) {

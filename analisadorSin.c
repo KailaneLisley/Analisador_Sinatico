@@ -2,33 +2,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_PILHA 500 // Increased stack size
-#define MAX_TOKENS 1000 // Increased token buffer size
+#define MAX_PILHA 100 
+#define MAX_TOKENS 100 
 #define MAX_TAM_TOKEN 50
 
 // Estrutura para armazenar informações do token lido do arquivo
 typedef struct {
-    char nome[MAX_TAM_TOKEN]; // Nome do token (ex: T_INT, T_ID)
-    char lexema[MAX_TAM_TOKEN]; // O lexema real (ex: "int", "x")
-    char tipo_lexema[MAX_TAM_TOKEN]; // Categoria (ex: PALAVRA_RESERVADA)
+    char nome[MAX_TAM_TOKEN];           // Nome do token 
+    char lexema[MAX_TAM_TOKEN];         // Lexema real 
+    char tipo_lexema[MAX_TAM_TOKEN];    // Categoria do Token
 } TokenInfoArquivo;
 
-// === Enum para Terminais (Baseado em gramatica_padronizada.txt e Tabela M) ===
-// Ordem deve ser consistente com as colunas da Tabela M
 enum Terminais {
     INT, FLOAT, CHAR, BOOLEAN, VOID, ID, NUM,
     IF, WHILE, ELSE, RETURN, 
-    COMP, // Operadores de comparação (==, !=, <, >, <=, >=) 
-    OP_ARIT, // Operadores aritméticos (+, -, *, /)
+    COMP,                                               // Operadores de comparação (==, !=, <, >, <=, >=) 
+    OP_ARIT,                                            // Operadores aritméticos (+, -, *, /)
     ABRE_PAREN, FECHA_PAREN, ABRE_CHAVE, FECHA_CHAVE,
     PONTO_VIRGULA, VIRGULA, ATRIBUICAO,
     T_EOF,
-    // --- Fim dos terminais usados na Tabela M --- //
-    NUM_TERMINAIS // Contador - deve ser o último
+    NUM_TERMINAIS                                       // Contador dos Terminais
 };
 
-// === Enum para Não-Terminais (Baseado em gramatica_padronizada.txt e Tabela M) ===
-// Ordem deve ser consistente com as linhas da Tabela M
 enum NaoTerminais {
     Programa,
     Declaracoes,
@@ -48,22 +43,19 @@ enum NaoTerminais {
     ExpressaoResto,
     Termo,
     TermoResto,
-    Fator, // Usando a regra modificada Fator -> T_ID FatorResto | T_NUM | ...
-    FatorResto, // Novo não-terminal para a modificação LL(1)
+    Fator, 
+    FatorResto, 
     Argumentos,
     ListaArgumentos,
     RestoListaArgumentos,
-    // --- Fim dos não-terminais usados na Tabela M --- //
-    NUM_NAO_TERMINAIS // Contador - deve ser o último
+    NUM_NAO_TERMINAIS       // Contador dos Não Terminais
 };
 
-// Define um offset para os não-terminais na pilha
-#define NT_DESLOCAMENTO NUM_TERMINAIS
-// Macros para converter entre enum base e valor na pilha
-#define NT_PILHA(nt_base) (nt_base + NT_DESLOCAMENTO)
-#define PILHA_NT(pilha_valor) (pilha_valor - NT_DESLOCAMENTO)
+#define NT_DESLOCAMENTO NUM_TERMINAIS                           // Deslocamento (offset) para os não-terminais na pilha
+#define NT_PILHA(nt_base) (nt_base + NT_DESLOCAMENTO)           // Converte NUM_TERMINAL em valor na pilha
+#define PILHA_NT(pilha_valor) (pilha_valor - NT_DESLOCAMENTO)   // Coverte valor na pilha em NUM_TERMINAL
 
-// === Pilha ===
+// PILHA
 int pilha[MAX_PILHA];
 int topo = -1;
 
@@ -80,17 +72,15 @@ int desempilhar() {
     if (topo >= 0) {
         return pilha[topo--];
     } else {
-        // Não é necessariamente um erro, pode ser o fim da análise
-        // fprintf(stderr, "Alerta: Tentativa de desempilhar com a pilha vazia!\n");
-        return -1; // Retorna um valor inválido
+        fprintf(stderr, "Alerta: Tentativa de desempilhar com a pilha vazia!\n");   // Erro ou fim da análise
+        return -1;                                                                  // Retorna um valor inválido
     }
 }
 
-// === Tabela M ===
-// Dimensões baseadas nos enums acima
+// TABELA M
 int tabelaM[NUM_NAO_TERMINAIS][NUM_TERMINAIS];
 
-// === Números das Produções (conforme definido no plano) ===
+// PRODUÇÕES
 // 0. Programa' → Programa T_EOF (Implícito)
 #define P_Programa_Declaracoes 1
 #define P_Declaracoes_DeclaracaoDeclaracoes 2
@@ -129,11 +119,11 @@ int tabelaM[NUM_NAO_TERMINAIS][NUM_TERMINAIS];
 #define P_Termo_FatorTermoResto 35
 #define P_TermoResto_OpAritFatorTermoResto 36
 #define P_TermoResto_Epsilon 37
-#define P_Fator_IdFatorResto 38 // Regra Modificada
+#define P_Fator_IdFatorResto 38 
 #define P_Fator_Num 39
 #define P_Fator_AbreParenExprFechaParen 40
-#define P_FatorResto_Call 41 // Regra Modificada
-#define P_FatorResto_Epsilon 42 // Regra Modificada
+#define P_FatorResto_Call 41 
+#define P_FatorResto_Epsilon 42
 #define P_Argumentos_ListaArgumentos 43
 #define P_Argumentos_Epsilon 44
 #define P_ListaArgumentos_ExprRestoListaArgumentos 45
@@ -148,17 +138,14 @@ void inicializarTabelaM() {
             tabelaM[i][j] = -1;
         }
     }
-
     // 2. Preenche as entradas válidas com o número da produção correspondente
-    //    Baseado em "Tabela M Completa (Gramática Padronizada e Simplificada).md"
-
     // Programa
     tabelaM[Programa][INT] = P_Programa_Declaracoes; // 1
     tabelaM[Programa][FLOAT] = P_Programa_Declaracoes; // 1
     tabelaM[Programa][CHAR] = P_Programa_Declaracoes; // 1
     tabelaM[Programa][BOOLEAN] = P_Programa_Declaracoes; // 1
     tabelaM[Programa][VOID] = P_Programa_Declaracoes; // 1
-    tabelaM[Programa][T_EOF] = P_Programa_Declaracoes; // 1 (Programa -> Declaracoes, e Declaracoes pode ser epsilon)
+    tabelaM[Programa][T_EOF] = P_Programa_Declaracoes; // 1 
 
     // Declaracoes
     tabelaM[Declaracoes][INT] = P_Declaracoes_DeclaracaoDeclaracoes; // 2
@@ -166,7 +153,6 @@ void inicializarTabelaM() {
     tabelaM[Declaracoes][CHAR] = P_Declaracoes_DeclaracaoDeclaracoes; // 2
     tabelaM[Declaracoes][BOOLEAN] = P_Declaracoes_DeclaracaoDeclaracoes; // 2
     tabelaM[Declaracoes][VOID] = P_Declaracoes_DeclaracaoDeclaracoes; // 2
-    // FOLLOW(Declaracoes) inclui T_EOF e T_FECHA_CHAVE (porque pode vir antes de '}')
     tabelaM[Declaracoes][T_EOF] = P_Declaracoes_Epsilon; // 3
     tabelaM[Declaracoes][FECHA_CHAVE] = P_Declaracoes_Epsilon; // 3
 
@@ -185,12 +171,12 @@ void inicializarTabelaM() {
     tabelaM[Tipo][VOID] = P_Tipo_Void; // 17
 
     // DeclaracaoResto
-    tabelaM[DeclaracaoResto][PONTO_VIRGULA] = P_DeclaracaoResto_PontoVirgula; // 5 (VAR)
-    tabelaM[DeclaracaoResto][ATRIBUICAO] = P_DeclaracaoResto_AtribuicaoExprPontoVirgula; // 6 (VAR_ASSIGN)
-    tabelaM[DeclaracaoResto][ABRE_PAREN] = P_DeclaracaoResto_ParamsBloco; // 7 (FUNC)
+    tabelaM[DeclaracaoResto][PONTO_VIRGULA] = P_DeclaracaoResto_PontoVirgula; // 5 
+    tabelaM[DeclaracaoResto][ATRIBUICAO] = P_DeclaracaoResto_AtribuicaoExprPontoVirgula; // 6 
+    tabelaM[DeclaracaoResto][ABRE_PAREN] = P_DeclaracaoResto_ParamsBloco; // 7 
 
     // Parametros
-    tabelaM[Parametros][INT] = P_Parametros_ListaParametros; // 8 (LST)
+    tabelaM[Parametros][INT] = P_Parametros_ListaParametros; // 8 
     tabelaM[Parametros][FLOAT] = P_Parametros_ListaParametros; // 8
     tabelaM[Parametros][CHAR] = P_Parametros_ListaParametros; // 8
     tabelaM[Parametros][BOOLEAN] = P_Parametros_ListaParametros; // 8
@@ -205,14 +191,13 @@ void inicializarTabelaM() {
     tabelaM[ListaParametros][VOID] = P_ListaParametros_TipoIdRestoListaParametros; // 10
 
     // RestoListaParametros
-    tabelaM[RestoListaParametros][VIRGULA] = P_RestoListaParametros_VirgulaTipoIdResto; // 11 (,)
+    tabelaM[RestoListaParametros][VIRGULA] = P_RestoListaParametros_VirgulaTipoIdResto; // 11 
     tabelaM[RestoListaParametros][FECHA_PAREN] = P_RestoListaParametros_Epsilon; // 12 (ε)
 
     // Bloco
     tabelaM[Bloco][ABRE_CHAVE] = P_Bloco_AbreChaveComandosFechaChave; // 18
 
     // Comandos
-    // FIRST(Comando) = FIRST(Declaracao) U {T_ID, T_IF, T_WHILE, T_RETURN, T_ABRE_CHAVE}
     tabelaM[Comandos][INT] = P_Comandos_ComandoComandos; // 19
     tabelaM[Comandos][FLOAT] = P_Comandos_ComandoComandos; // 19
     tabelaM[Comandos][CHAR] = P_Comandos_ComandoComandos; // 19
@@ -223,29 +208,26 @@ void inicializarTabelaM() {
     tabelaM[Comandos][WHILE] = P_Comandos_ComandoComandos; // 19
     tabelaM[Comandos][RETURN] = P_Comandos_ComandoComandos; // 19
     tabelaM[Comandos][ABRE_CHAVE] = P_Comandos_ComandoComandos; // 19
-    // FOLLOW(Comandos) = {T_FECHA_CHAVE}
     tabelaM[Comandos][FECHA_CHAVE] = P_Comandos_Epsilon; // 20 (ε)
 
     // Comando
-    tabelaM[Comando][INT] = P_Comando_Declaracao; // 21 (DEC)
+    tabelaM[Comando][INT] = P_Comando_Declaracao; // 21 (
     tabelaM[Comando][FLOAT] = P_Comando_Declaracao; // 21
     tabelaM[Comando][CHAR] = P_Comando_Declaracao; // 21
     tabelaM[Comando][BOOLEAN] = P_Comando_Declaracao; // 21
     tabelaM[Comando][VOID] = P_Comando_Declaracao; // 21
-    tabelaM[Comando][ID] = P_Comando_IdAtribExprPontoVirgula; // 22 (ASSIGN)
-    tabelaM[Comando][IF] = P_Comando_ComandoCondicional; // 23 (COND)
+    tabelaM[Comando][ID] = P_Comando_IdAtribExprPontoVirgula; // 22 
+    tabelaM[Comando][IF] = P_Comando_ComandoCondicional; // 23 
     tabelaM[Comando][WHILE] = P_Comando_ComandoCondicional; // 23
-    tabelaM[Comando][RETURN] = P_Comando_ReturnExprOpcPontoVirgula; // 25 (RETURN)
-    tabelaM[Comando][ABRE_CHAVE] = P_Comando_Bloco; // 24 (BLOCO)
+    tabelaM[Comando][RETURN] = P_Comando_ReturnExprOpcPontoVirgula; // 25 
+    tabelaM[Comando][ABRE_CHAVE] = P_Comando_Bloco; // 24 
 
     // ComandoCondicional
-    tabelaM[ComandoCondicional][IF] = P_ComandoCondicional_If; // 26 (IF)
-    tabelaM[ComandoCondicional][WHILE] = P_ComandoCondicional_While; // 27 (WHILE)
+    tabelaM[ComandoCondicional][IF] = P_ComandoCondicional_If; // 26 
+    tabelaM[ComandoCondicional][WHILE] = P_ComandoCondicional_While; // 27
 
     // ElseOpcional
-    tabelaM[ElseOpcional][ELSE] = P_ElseOpcional_ElseComando; // 28 (ELSE)
-    // FOLLOW(ElseOpcional) = FOLLOW(Comando) = FIRST(Comando) U FOLLOW(Comandos) U {T_ELSE}
-    // Simplificando: Tudo que pode vir depois de um comando.
+    tabelaM[ElseOpcional][ELSE] = P_ElseOpcional_ElseComando; // 28
     tabelaM[ElseOpcional][INT] = P_ElseOpcional_Epsilon; // 29 (ε)
     tabelaM[ElseOpcional][FLOAT] = P_ElseOpcional_Epsilon; // 29
     tabelaM[ElseOpcional][CHAR] = P_ElseOpcional_Epsilon; // 29
@@ -256,15 +238,13 @@ void inicializarTabelaM() {
     tabelaM[ElseOpcional][WHILE] = P_ElseOpcional_Epsilon; // 29
     tabelaM[ElseOpcional][RETURN] = P_ElseOpcional_Epsilon; // 29
     tabelaM[ElseOpcional][ABRE_CHAVE] = P_ElseOpcional_Epsilon; // 29
-    tabelaM[ElseOpcional][FECHA_CHAVE] = P_ElseOpcional_Epsilon; // 29 (do FOLLOW(Comandos))
-    tabelaM[ElseOpcional][EOF] = P_ElseOpcional_Epsilon; // 29 (do FOLLOW(Declaracoes))
+    tabelaM[ElseOpcional][FECHA_CHAVE] = P_ElseOpcional_Epsilon; // 29 
+    tabelaM[ElseOpcional][EOF] = P_ElseOpcional_Epsilon; // 29 
 
     // ExpressaoOpcional
-    // FIRST(Expressao) = FIRST(Termo) = FIRST(Fator) = {T_ID, T_NUM, T_ABRE_PAREN}
-    tabelaM[ExpressaoOpcional][ID] = P_ExpressaoOpcional_Expressao; // 30 (E)
+    tabelaM[ExpressaoOpcional][ID] = P_ExpressaoOpcional_Expressao; // 30 
     tabelaM[ExpressaoOpcional][NUM] = P_ExpressaoOpcional_Expressao; // 30
     tabelaM[ExpressaoOpcional][ABRE_PAREN] = P_ExpressaoOpcional_Expressao; // 30
-    // FOLLOW(ExpressaoOpcional) = {T_PONTO_VIRGULA}
     tabelaM[ExpressaoOpcional][PONTO_VIRGULA] = P_ExpressaoOpcional_Epsilon; // 31 (ε)
 
     // Expressao
@@ -273,8 +253,7 @@ void inicializarTabelaM() {
     tabelaM[Expressao][ABRE_PAREN] = P_Expressao_TermoExpressaoResto; // 32
 
     // ExpressaoResto
-    tabelaM[ExpressaoResto][COMP] = P_ExpressaoResto_CompTermoExpressaoResto; // 33 (COMP)
-    // FOLLOW(ExpressaoResto) = FOLLOW(Expressao) = {T_FECHA_PAREN, T_PONTO_VIRGULA, T_VIRGULA}
+    tabelaM[ExpressaoResto][COMP] = P_ExpressaoResto_CompTermoExpressaoResto; // 33 
     tabelaM[ExpressaoResto][FECHA_PAREN] = P_ExpressaoResto_Epsilon; // 34 (ε)
     tabelaM[ExpressaoResto][PONTO_VIRGULA] = P_ExpressaoResto_Epsilon; // 34
     tabelaM[ExpressaoResto][VIRGULA] = P_ExpressaoResto_Epsilon; // 34
@@ -285,21 +264,19 @@ void inicializarTabelaM() {
     tabelaM[Termo][ABRE_PAREN] = P_Termo_FatorTermoResto; // 35
 
     // TermoResto
-    tabelaM[TermoResto][OP_ARIT] = P_TermoResto_OpAritFatorTermoResto; // 36 (OP)
-    // FOLLOW(TermoResto) = FOLLOW(Termo) = FOLLOW(Expressao) U FIRST(ExpressaoResto) = {T_FECHA_PAREN, T_PONTO_VIRGULA, T_VIRGULA, T_COMP}
+    tabelaM[TermoResto][OP_ARIT] = P_TermoResto_OpAritFatorTermoResto; // 36 
     tabelaM[TermoResto][FECHA_PAREN] = P_TermoResto_Epsilon; // 37 (ε)
     tabelaM[TermoResto][PONTO_VIRGULA] = P_TermoResto_Epsilon; // 37
     tabelaM[TermoResto][VIRGULA] = P_TermoResto_Epsilon; // 37
     tabelaM[TermoResto][COMP] = P_TermoResto_Epsilon; // 37
 
-    // Fator (Regra Modificada)
+    // Fator 
     tabelaM[Fator][ID] = P_Fator_IdFatorResto; // 38 (ID)
     tabelaM[Fator][NUM] = P_Fator_Num; // 39 (NUM)
-    tabelaM[Fator][ABRE_PAREN] = P_Fator_AbreParenExprFechaParen; // 40 (PAREN)
+    tabelaM[Fator][ABRE_PAREN] = P_Fator_AbreParenExprFechaParen; // 40 
 
-    // FatorResto (Regra Modificada)
-    tabelaM[FatorResto][ABRE_PAREN] = P_FatorResto_Call; // 41 (CALL)
-    // FOLLOW(FatorResto) = FOLLOW(Fator) = FOLLOW(Termo) U FIRST(TermoResto) = {T_FECHA_PAREN, T_PONTO_VIRGULA, T_VIRGULA, T_COMP, T_OP_ARIT}
+    // FatorResto 
+    tabelaM[FatorResto][ABRE_PAREN] = P_FatorResto_Call; // 41
     tabelaM[FatorResto][FECHA_PAREN] = P_FatorResto_Epsilon; // 42 (ε)
     tabelaM[FatorResto][PONTO_VIRGULA] = P_FatorResto_Epsilon; // 42
     tabelaM[FatorResto][VIRGULA] = P_FatorResto_Epsilon; // 42
@@ -307,11 +284,9 @@ void inicializarTabelaM() {
     tabelaM[FatorResto][OP_ARIT] = P_FatorResto_Epsilon; // 42
 
     // Argumentos
-    // FIRST(ListaArgumentos) = FIRST(Expressao) = {T_ID, T_NUM, T_ABRE_PAREN}
-    tabelaM[Argumentos][ID] = P_Argumentos_ListaArgumentos; // 43 (LST)
+    tabelaM[Argumentos][ID] = P_Argumentos_ListaArgumentos; // 43 
     tabelaM[Argumentos][NUM] = P_Argumentos_ListaArgumentos; // 43
     tabelaM[Argumentos][ABRE_PAREN] = P_Argumentos_ListaArgumentos; // 43
-    // FOLLOW(Argumentos) = {T_FECHA_PAREN}
     tabelaM[Argumentos][FECHA_PAREN] = P_Argumentos_Epsilon; // 44 (ε)
 
     // ListaArgumentos
@@ -321,7 +296,6 @@ void inicializarTabelaM() {
 
     // RestoListaArgumentos
     tabelaM[RestoListaArgumentos][VIRGULA] = P_RestoListaArgumentos_VirgulaExprResto; // 46 (,)
-    // FOLLOW(RestoListaArgumentos) = FOLLOW(Argumentos) = {T_FECHA_PAREN}
     tabelaM[RestoListaArgumentos][FECHA_PAREN] = P_RestoListaArgumentos_Epsilon; // 47 (ε)
 
     printf("Tabela M inicializada completamente.\n");
@@ -331,93 +305,93 @@ void inicializarTabelaM() {
 void aplicarProducao(int producao) {
     // Empilha os símbolos do lado direito da produção em ordem inversa
     switch (producao) {
-        case P_Programa_Declaracoes: // 1: Programa → Declaracoes
+        case P_Programa_Declaracoes:                        // 1: Programa → Declaracoes
             empilhar(NT_PILHA(Declaracoes));
             break;
-        case P_Declaracoes_DeclaracaoDeclaracoes: // 2: Declaracoes → Declaracao Declaracoes
+        case P_Declaracoes_DeclaracaoDeclaracoes:           // 2: Declaracoes → Declaracao Declaracoes
             empilhar(NT_PILHA(Declaracoes));
             empilhar(NT_PILHA(Declaracao));
             break;
-        case P_Declaracoes_Epsilon: // 3: Declaracoes → ε
+        case P_Declaracoes_Epsilon:                         // 3: Declaracoes → ε
             // Não empilha nada
             break;
-        case P_Declaracao_TipoIdDeclaracaoResto: // 4: Declaracao → Tipo T_ID DeclaracaoResto
+        case P_Declaracao_TipoIdDeclaracaoResto:            // 4: Declaracao → Tipo T_ID DeclaracaoResto
             empilhar(NT_PILHA(DeclaracaoResto));
             empilhar(ID);
             empilhar(NT_PILHA(Tipo));
             break;
-        case P_DeclaracaoResto_PontoVirgula: // 5: DeclaracaoResto → T_PONTO_VIRGULA
+        case P_DeclaracaoResto_PontoVirgula:                // 5: DeclaracaoResto → T_PONTO_VIRGULA
             empilhar(PONTO_VIRGULA);
             break;
-        case P_DeclaracaoResto_AtribuicaoExprPontoVirgula: // 6: DeclaracaoResto → T_ATRIBUICAO Expressao T_PONTO_VIRGULA
+        case P_DeclaracaoResto_AtribuicaoExprPontoVirgula:  // 6: DeclaracaoResto → T_ATRIBUICAO Expressao T_PONTO_VIRGULA
             empilhar(PONTO_VIRGULA);
             empilhar(NT_PILHA(Expressao));
             empilhar(ATRIBUICAO);
             break;
-        case P_DeclaracaoResto_ParamsBloco: // 7: DeclaracaoResto → T_ABRE_PAREN Parametros T_FECHA_PAREN Bloco
+        case P_DeclaracaoResto_ParamsBloco:                 // 7: DeclaracaoResto → T_ABRE_PAREN Parametros T_FECHA_PAREN Bloco
             empilhar(NT_PILHA(Bloco));
             empilhar(FECHA_PAREN);
             empilhar(NT_PILHA(Parametros));
             empilhar(ABRE_PAREN);
             break;
-        case P_Parametros_ListaParametros: // 8: Parametros → ListaParametros
+        case P_Parametros_ListaParametros:                  // 8: Parametros → ListaParametros
             empilhar(NT_PILHA(ListaParametros));
             break;
-        case P_Parametros_Epsilon: // 9: Parametros → ε
+        case P_Parametros_Epsilon:                          // 9: Parametros → ε
             // Não empilha nada
             break;
-        case P_ListaParametros_TipoIdRestoListaParametros: // 10: ListaParametros → Tipo T_ID RestoListaParametros
+        case P_ListaParametros_TipoIdRestoListaParametros:  // 10: ListaParametros → Tipo T_ID RestoListaParametros
             empilhar(NT_PILHA(RestoListaParametros));
             empilhar(ID);
             empilhar(NT_PILHA(Tipo));
             break;
-        case P_RestoListaParametros_VirgulaTipoIdResto: // 11: RestoListaParametros → T_VIRGULA Tipo T_ID RestoListaParametros
+        case P_RestoListaParametros_VirgulaTipoIdResto:     // 11: RestoListaParametros → T_VIRGULA Tipo T_ID RestoListaParametros
             empilhar(NT_PILHA(RestoListaParametros));
             empilhar(ID);
             empilhar(NT_PILHA(Tipo));
             empilhar(VIRGULA);
             break;
-        case P_RestoListaParametros_Epsilon: // 12: RestoListaParametros → ε
+        case P_RestoListaParametros_Epsilon:                // 12: RestoListaParametros → ε
             // Não empilha nada
             break;
-        case P_Tipo_Int: empilhar(INT); break; // 13
-        case P_Tipo_Float: empilhar(FLOAT); break; // 14
-        case P_Tipo_Char: empilhar(CHAR); break; // 15
-        case P_Tipo_Boolean: empilhar(BOOLEAN); break; // 16
-        case P_Tipo_Void: empilhar(VOID); break; // 17
-        case P_Bloco_AbreChaveComandosFechaChave: // 18: Bloco → T_ABRE_CHAVE Comandos T_FECHA_CHAVE
+        case P_Tipo_Int: empilhar(INT); break;              // 13
+        case P_Tipo_Float: empilhar(FLOAT); break;          // 14
+        case P_Tipo_Char: empilhar(CHAR); break;            // 15
+        case P_Tipo_Boolean: empilhar(BOOLEAN); break;      // 16
+        case P_Tipo_Void: empilhar(VOID); break;            // 17
+        case P_Bloco_AbreChaveComandosFechaChave:           // 18: Bloco → T_ABRE_CHAVE Comandos T_FECHA_CHAVE
             empilhar(FECHA_CHAVE);
             empilhar(NT_PILHA(Comandos));
             empilhar(ABRE_CHAVE);
             break;
-        case P_Comandos_ComandoComandos: // 19: Comandos → Comando Comandos
+        case P_Comandos_ComandoComandos:                    // 19: Comandos → Comando Comandos
             empilhar(NT_PILHA(Comandos));
             empilhar(NT_PILHA(Comando));
             break;
-        case P_Comandos_Epsilon: // 20: Comandos → ε
+        case P_Comandos_Epsilon:                            // 20: Comandos → ε
             // Não empilha nada
             break;
-        case P_Comando_Declaracao: // 21: Comando → Declaracao
+        case P_Comando_Declaracao:                          // 21: Comando → Declaracao
             empilhar(NT_PILHA(Declaracao));
             break;
-        case P_Comando_IdAtribExprPontoVirgula: // 22: Comando → T_ID T_ATRIBUICAO Expressao T_PONTO_VIRGULA
+        case P_Comando_IdAtribExprPontoVirgula:             // 22: Comando → T_ID T_ATRIBUICAO Expressao T_PONTO_VIRGULA
             empilhar(PONTO_VIRGULA);
             empilhar(NT_PILHA(Expressao));
             empilhar(ATRIBUICAO);
             empilhar(ID);
             break;
-        case P_Comando_ComandoCondicional: // 23: Comando → ComandoCondicional
+        case P_Comando_ComandoCondicional:                  // 23: Comando → ComandoCondicional
             empilhar(NT_PILHA(ComandoCondicional));
             break;
-        case P_Comando_Bloco: // 24: Comando → Bloco
+        case P_Comando_Bloco:                               // 24: Comando → Bloco
             empilhar(NT_PILHA(Bloco));
             break;
-        case P_Comando_ReturnExprOpcPontoVirgula: // 25: Comando → T_RETURN ExpressaoOpcional T_PONTO_VIRGULA
+        case P_Comando_ReturnExprOpcPontoVirgula:           // 25: Comando → T_RETURN ExpressaoOpcional T_PONTO_VIRGULA
             empilhar(PONTO_VIRGULA);
             empilhar(NT_PILHA(ExpressaoOpcional));
             empilhar(RETURN);
             break;
-        case P_ComandoCondicional_If: // 26: ComandoCondicional → T_IF T_ABRE_PAREN Expressao T_FECHA_PAREN Comando ElseOpcional
+        case P_ComandoCondicional_If:                       // 26: ComandoCondicional → T_IF T_ABRE_PAREN Expressao T_FECHA_PAREN Comando ElseOpcional
             empilhar(NT_PILHA(ElseOpcional));
             empilhar(NT_PILHA(Comando));
             empilhar(FECHA_PAREN);
@@ -425,86 +399,86 @@ void aplicarProducao(int producao) {
             empilhar(ABRE_PAREN);
             empilhar(IF);
             break;
-        case P_ComandoCondicional_While: // 27: ComandoCondicional → T_WHILE T_ABRE_PAREN Expressao T_FECHA_PAREN Comando
+        case P_ComandoCondicional_While:                    // 27: ComandoCondicional → T_WHILE T_ABRE_PAREN Expressao T_FECHA_PAREN Comando
             empilhar(NT_PILHA(Comando));
             empilhar(FECHA_PAREN);
             empilhar(NT_PILHA(Expressao));
             empilhar(ABRE_PAREN);
             empilhar(WHILE);
             break;
-        case P_ElseOpcional_ElseComando: // 28: ElseOpcional → T_ELSE Comando
+        case P_ElseOpcional_ElseComando:                    // 28: ElseOpcional → T_ELSE Comando
             empilhar(NT_PILHA(Comando));
             empilhar(ELSE);
             break;
-        case P_ElseOpcional_Epsilon: // 29: ElseOpcional → ε
+        case P_ElseOpcional_Epsilon:                        // 29: ElseOpcional → ε
             // Não empilha nada
             break;
-        case P_ExpressaoOpcional_Expressao: // 30: ExpressaoOpcional → Expressao
+        case P_ExpressaoOpcional_Expressao:                 // 30: ExpressaoOpcional → Expressao
             empilhar(NT_PILHA(Expressao));
             break;
-        case P_ExpressaoOpcional_Epsilon: // 31: ExpressaoOpcional → ε
+        case P_ExpressaoOpcional_Epsilon:                   // 31: ExpressaoOpcional → ε
             // Não empilha nada
             break;
-        case P_Expressao_TermoExpressaoResto: // 32: Expressao → Termo ExpressaoResto
+        case P_Expressao_TermoExpressaoResto:               // 32: Expressao → Termo ExpressaoResto
             empilhar(NT_PILHA(ExpressaoResto));
             empilhar(NT_PILHA(Termo));
             break;
-        case P_ExpressaoResto_CompTermoExpressaoResto: // 33: ExpressaoResto → T_COMP Termo ExpressaoResto
+        case P_ExpressaoResto_CompTermoExpressaoResto:      // 33: ExpressaoResto → T_COMP Termo ExpressaoResto
             empilhar(NT_PILHA(ExpressaoResto));
             empilhar(NT_PILHA(Termo));
             empilhar(COMP);
             break;
-        case P_ExpressaoResto_Epsilon: // 34: ExpressaoResto → ε
+        case P_ExpressaoResto_Epsilon:                      // 34: ExpressaoResto → ε
             // Não empilha nada
             break;
-        case P_Termo_FatorTermoResto: // 35: Termo → Fator TermoResto
+        case P_Termo_FatorTermoResto:                       // 35: Termo → Fator TermoResto
             empilhar(NT_PILHA(TermoResto));
             empilhar(NT_PILHA(Fator));
             break;
-        case P_TermoResto_OpAritFatorTermoResto: // 36: TermoResto → T_OP_ARIT Fator TermoResto
+        case P_TermoResto_OpAritFatorTermoResto:            // 36: TermoResto → T_OP_ARIT Fator TermoResto
             empilhar(NT_PILHA(TermoResto));
             empilhar(NT_PILHA(Fator));
             empilhar(OP_ARIT);
             break;
-        case P_TermoResto_Epsilon: // 37: TermoResto → ε
+        case P_TermoResto_Epsilon:                          // 37: TermoResto → ε
             // Não empilha nada
             break;
-        case P_Fator_IdFatorResto: // 38: Fator → T_ID FatorResto (Modificada)
+        case P_Fator_IdFatorResto:                          // 38: Fator → T_ID FatorResto (Modificada)
             empilhar(NT_PILHA(FatorResto));
             empilhar(ID);
             break;
-        case P_Fator_Num: // 39: Fator → T_NUM
+        case P_Fator_Num:                                   // 39: Fator → T_NUM
             empilhar(NUM);
             break;
-        case P_Fator_AbreParenExprFechaParen: // 40: Fator → T_ABRE_PAREN Expressao T_FECHA_PAREN
+        case P_Fator_AbreParenExprFechaParen:               // 40: Fator → T_ABRE_PAREN Expressao T_FECHA_PAREN
             empilhar(FECHA_PAREN);
             empilhar(NT_PILHA(Expressao));
             empilhar(ABRE_PAREN);
             break;
-        case P_FatorResto_Call: // 41: FatorResto → T_ABRE_PAREN Argumentos T_FECHA_PAREN (Modificada)
+        case P_FatorResto_Call:                             // 41: FatorResto → T_ABRE_PAREN Argumentos T_FECHA_PAREN (Modificada)
             empilhar(FECHA_PAREN);
             empilhar(NT_PILHA(Argumentos));
             empilhar(ABRE_PAREN);
             break;
-        case P_FatorResto_Epsilon: // 42: FatorResto → ε (Modificada)
+        case P_FatorResto_Epsilon:                          // 42: FatorResto → ε (Modificada)
             // Não empilha nada
             break;
-        case P_Argumentos_ListaArgumentos: // 43: Argumentos → ListaArgumentos
+        case P_Argumentos_ListaArgumentos:                  // 43: Argumentos → ListaArgumentos
             empilhar(NT_PILHA(ListaArgumentos));
             break;
-        case P_Argumentos_Epsilon: // 44: Argumentos → ε
+        case P_Argumentos_Epsilon:                          // 44: Argumentos → ε
             // Não empilha nada
             break;
-        case P_ListaArgumentos_ExprRestoListaArgumentos: // 45: ListaArgumentos → Expressao RestoListaArgumentos
+        case P_ListaArgumentos_ExprRestoListaArgumentos:    // 45: ListaArgumentos → Expressao RestoListaArgumentos
             empilhar(NT_PILHA(RestoListaArgumentos));
             empilhar(NT_PILHA(Expressao));
             break;
-        case P_RestoListaArgumentos_VirgulaExprResto: // 46: RestoListaArgumentos → T_VIRGULA Expressao RestoListaArgumentos
+        case P_RestoListaArgumentos_VirgulaExprResto:       // 46: RestoListaArgumentos → T_VIRGULA Expressao RestoListaArgumentos
             empilhar(NT_PILHA(RestoListaArgumentos));
             empilhar(NT_PILHA(Expressao));
             empilhar(VIRGULA);
             break;
-        case P_RestoListaArgumentos_Epsilon: // 47: RestoListaArgumentos → ε
+        case P_RestoListaArgumentos_Epsilon:                // 47: RestoListaArgumentos → ε
             // Não empilha nada
             break;
 
@@ -516,7 +490,6 @@ void aplicarProducao(int producao) {
 }
 
 // Função para mapear nome do token (string) para enum
-// **PRECISA SER COMPLETADO CUIDADOSAMENTE**
 int mapearToken(const char* nomeToken) {
     // Palavras-chave e Tipos
     if (strcmp(nomeToken, "INT") == 0 || strcmp(nomeToken, "int") == 0) return INT;
@@ -533,14 +506,12 @@ int mapearToken(const char* nomeToken) {
     if (strcmp(nomeToken, "ID") == 0 || strcmp(nomeToken, "ID") == 0) return ID;
     if (strcmp(nomeToken, "NUM") == 0 || strcmp(nomeToken, "NUM_INT") == 0 || strcmp(nomeToken, "NUM_DEC") == 0) return NUM;
 
-    // Operadores de Comparação (Todos mapeados para T_COMP por simplicidade na Tabela M)
-    // Se sua Tabela M diferenciar, você precisará de enums/colunas separadas
+    // Operadores de Comparação
     if (strcmp(nomeToken, "COMP") == 0 || strcmp(nomeToken, "==") == 0 || strcmp(nomeToken, "!=") == 0 ||
         strcmp(nomeToken, "<") == 0 || strcmp(nomeToken, ">") == 0 || strcmp(nomeToken, "<=") == 0 ||
         strcmp(nomeToken, ">=") == 0) return COMP;
 
-    // Operadores Aritméticos (Todos mapeados para T_OP_ARIT por simplicidade na Tabela M)
-    // Se sua Tabela M diferenciar, você precisará de enums/colunas separadas
+    // Operadores Aritméticos 
     if (strcmp(nomeToken, "OP_ARIT") == 0 || strcmp(nomeToken, "+") == 0 || strcmp(nomeToken, "-") == 0 ||
         strcmp(nomeToken, "*") == 0 || strcmp(nomeToken, "/") == 0 || strcmp(nomeToken, "%") == 0)
         return OP_ARIT;
@@ -557,14 +528,12 @@ int mapearToken(const char* nomeToken) {
     // Fim de Arquivo
     if (strcmp(nomeToken, "T_EOF") == 0 || strcmp(nomeToken, "T_EOF") == 0 || strcmp(nomeToken, "$") == 0) return T_EOF;
 
-    // Adicione outros mapeamentos se necessário (ex: T_TEXTO, T_COMENTARIO, se forem relevantes para a sintaxe)
-
     // Se o token lido não for reconhecido
     fprintf(stderr, "Alerta: Token desconhecido no arquivo de entrada: %s\n", nomeToken);
     return -1; // Retorna um valor inválido
 }
 
-// Função auxiliar para imprimir nome do símbolo (debug)
+// Função auxiliar para imprimir nome do símbolo 
 const char* nomeSimbolo(int simbolo) {
     // Terminais
     if (simbolo >= 0 && simbolo < NUM_TERMINAIS) {
@@ -638,13 +607,12 @@ int main(int argc, char *argv[]) {
     }
 
     inicializarTabelaM();
-    topo = -1; // Garante que a pilha está vazia
-    empilhar(T_EOF); // Empilha marcador de fim de entrada primeiro
-    empilhar(NT_PILHA(Programa)); // Empilha símbolo inicial da gramática
+    topo = -1;                                              // Garante que a pilha está vazia
+    empilhar(T_EOF);                                        // Empilha marcador de fim de entrada primeiro
+    empilhar(NT_PILHA(Programa));                           // Empilha símbolo inicial da gramática
 
     if(debug) printf("Pilha inicializada. Símbolo inicial: %s, Marcador EOF: %s\n", nomeSimbolo(NT_PILHA(Programa)), nomeSimbolo(T_EOF));
-    // --- Leitura dos Tokens do Arquivo ---
-    TokenInfoArquivo tokensArquivo[MAX_TOKENS];
+    TokenInfoArquivo tokensArquivo[MAX_TOKENS];             // Leitura dos Tokens do Arquivo
     int tokensEnum[MAX_TOKENS];
     int totalTokens = 0;
 
@@ -654,8 +622,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if(debug) printf("Lendo tokens de %s...\n", argv[1]);
-    // Lê as 3 colunas, mas usa principalmente a primeira para mapear
+    if(debug) printf("Lendo tokens de %s...\n", argv[1]);   // Lê as 3 colunas e usa a 1º para mapear
     while (totalTokens < MAX_TOKENS && fscanf(arq, "%49s %*s %*s", tokensArquivo[totalTokens].nome) == 1) {
         strcpy(tokensArquivo[totalTokens].lexema, tokensArquivo[totalTokens].nome);
         strcpy(tokensArquivo[totalTokens].tipo_lexema, "N/A");
@@ -664,7 +631,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Erro: Token '%s' (lexema: '%s') não reconhecido na linha %d (aprox.) do arquivo.\n",
                     tokensArquivo[totalTokens].nome, tokensArquivo[totalTokens].lexema, totalTokens + 1);
             fclose(arq);
-            return 1; // Aborta se encontrar token desconhecido
+            return 1;                                       // Aborta se encontrar token desconhecido
         }
         if(debug) printf("  Lido token %d: %s -> %s\n", totalTokens, tokensArquivo[totalTokens].nome, nomeSimbolo(tokensEnum[totalTokens]));
         totalTokens++;
@@ -674,9 +641,9 @@ int main(int argc, char *argv[]) {
     // Adiciona T_EOF ao final da sequência de tokens lida
     if (totalTokens < MAX_TOKENS) {
         tokensEnum[totalTokens] = T_EOF;
-        strcpy(tokensArquivo[totalTokens].nome, "T_EOF"); // Para mensagens de erro
+        strcpy(tokensArquivo[totalTokens].nome, "T_EOF");   // Para mensagens de erro
         strcpy(tokensArquivo[totalTokens].lexema, "$");
-        totalTokens++; // Incrementa para incluir o T_EOF na contagem
+        totalTokens++;                                      // Incrementa para incluir o T_EOF na contagem
     } else {
         fprintf(stderr, "Erro: Número máximo de tokens (%d) excedido.\n", MAX_TOKENS);
         return 1;
@@ -684,42 +651,40 @@ int main(int argc, char *argv[]) {
 
     printf("%d tokens lidos e mapeados (incluindo T_EOF).\n", totalTokens);
 
-    // --- Loop Principal da Análise Sintática ---
+    // Análise Sintática 
     int posTokenAtual = 0;
     int simboloAtual = tokensEnum[posTokenAtual];
 
     printf("\nIniciando analise sintatica...\n");
 
-    while (topo >= 0) { // Enquanto a pilha não estiver vazia
-        int simboloTopo = pilha[topo]; // Apenas espia o topo
+    while (topo >= 0) {                                     // Enquanto a pilha não estiver vazia
+        int simboloTopo = pilha[topo];                      // Apenas espia o topo
 
         if (debug) printf("Topo da pilha: %s (%d), Token atual: %s (%d)\n",
                nomeSimbolo(simboloTopo), simboloTopo, tokensArquivo[posTokenAtual].nome, simboloAtual);
 
         // Verifica se o símbolo no topo é um terminal
         if (simboloTopo >= 0 && simboloTopo < NUM_TERMINAIS) {
-            desempilhar(); // Remove o terminal da pilha ANTES de comparar
+            desempilhar();                                  // Remove o terminal da pilha ANTES de comparar
             if (simboloTopo == simboloAtual) {
-                if (simboloTopo == T_EOF) {
-                     if(debug) printf("  Match! Terminal: %s. Fim da análise esperado.\n", nomeSimbolo(simboloTopo));
-                     // Se o EOF foi encontrado e era esperado, a análise deve terminar.
-                     // A verificação final (pilha vazia) acontece fora do loop.
-                     posTokenAtual++; // Consome o EOF da entrada
-                     break; // Sai do loop principal
+                if (simboloTopo == T_EOF) {                 // Se o EOF foi encontrado e era esperado, a análise deve terminar.
+                     if(debug) printf("  Match! Terminal: %s. Fim da análise esperado.\n", nomeSimbolo(simboloTopo)); 
+                     posTokenAtual++;                       // Consome o EOF da entrada
+                     break;                                 // Sai do loop principal
                 } else {
                     if(debug) printf("  Match! Terminal: %s\n", nomeSimbolo(simboloTopo));
-                    posTokenAtual++; // Avança para o próximo token de entrada
+                    posTokenAtual++;                        // Avança para o próximo token de entrada
                     if (posTokenAtual < totalTokens) {
                         simboloAtual = tokensEnum[posTokenAtual];
                     } else {
                         fprintf(stderr, "Erro: Fim inesperado da entrada após match do token %s.\n", nomeSimbolo(simboloTopo));
-                        goto erro_sintatico; // Fim prematuro da entrada
+                        goto erro_sintatico;                // Fim prematuro da entrada
                     }
                 }
             } else {
                 fprintf(stderr, "\nErro Sintático: Terminal esperado '%s' (%d) não corresponde ao token atual '%s' (%d).\n", nomeSimbolo(simboloTopo), simboloTopo, tokensArquivo[posTokenAtual].nome, simboloAtual);
                 fprintf(stderr, "\\nContexto: Lexema '%s' na linha %d (aprox.)\n", tokensArquivo[posTokenAtual].lexema, posTokenAtual + 1);
-                goto erro_sintatico; // Pula para o final com erro
+                goto erro_sintatico;                        // Pula para o final com erro
             }
         }
         // Verifica se o símbolo no topo é um não-terminal
@@ -735,7 +700,7 @@ int main(int argc, char *argv[]) {
                    nomeSimbolo(simboloTopo), nomeSimbolo(simboloAtual), producao);
 
             if (producao != -1) {
-                // Produção encontrada, aplica
+                // Produção encontrada: aplica
                 if (debug) printf("  Aplicando produção %d para não-terminal %s\n", producao, nomeSimbolo(simboloTopo));
                 desempilhar(); // Remove o não-terminal do topo ANTES de empilhar a produção
                 aplicarProducao(producao);
@@ -748,7 +713,7 @@ int main(int argc, char *argv[]) {
                 // Erro: Nenhuma produção válida na Tabela M
                 fprintf(stderr, "\nErro Sintático: Nenhuma produção na Tabela M para não-terminal '%s' (%d) com token atual '%s' (%d).\n",
                         nomeSimbolo(simboloTopo), simboloTopo, tokensArquivo[posTokenAtual].nome, simboloAtual);
-                fprintf(stderr, "             Contexto: Lexema '%s' na linha %d (aprox.)\n", tokensArquivo[posTokenAtual].lexema, posTokenAtual + 1);
+                fprintf(stderr, "Contexto: Lexema '%s' na linha %d (aprox.)\n", tokensArquivo[posTokenAtual].lexema, posTokenAtual + 1);
                 goto erro_sintatico; // Pula para o final com erro
             }
         } else {
@@ -758,8 +723,7 @@ int main(int argc, char *argv[]) {
         }
     } // Fim do while(topo >= 0)
 
-    // --- Verificação Final ---
-    // A análise é bem-sucedida se a pilha estiver vazia E o último token consumido foi EOF
+    // Verificação Final: A análise é bem-sucedida se a pilha estiver vazia e o último token consumido foi EOF
     if (topo < 0 && posTokenAtual == totalTokens) { // posTokenAtual aponta para DEPOIS do EOF lido
          printf("\nAnalise sintatica concluída com sucesso!\n\n");
          return 0; // Sucesso

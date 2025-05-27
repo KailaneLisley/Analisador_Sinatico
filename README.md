@@ -4,8 +4,6 @@
 
 Implementação de um **analisador sintático preditivo LL(1)**, em linguagem **C**, para verificar a **correção gramatical** de sequências de tokens geradas para uma **linguagem fictícia** inspirada em C/Java.
 
-Este projeto foi desenvolvido para a disciplina de **Construção de Compiladores (2025.1)** na UNICAP.
-
 ## 📝 Descrição
 
 O analisador é capaz de identificar se uma sequência de tokens é **sintaticamente válida** com base em:

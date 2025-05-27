@@ -1,4 +1,4 @@
-# Analisador Sintático LL(1)
+# Construção de um Analisador Sintático LL(1)
 
 ## 🎯 Objetivo
 
@@ -49,3 +49,7 @@ OBS: Substitua X pelo número ou nome do arquivo de teste, por exemplo: Tokens1.
 ## Autoras
 Kailane Lisley de Araújo Silva
 Gabrielly Gouveia da Silva Feitosa
+
+---
+## Disciplina
+Construção de Compiladores — Universidade Católica de Pernambuco (UNICAP), 2025.1

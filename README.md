@@ -30,8 +30,22 @@ Chamadas de função com argumentos
 
 ---
 
-## 🚀 Como Executar
+## 🚀 Como Executar os Casos de Teste
 
-### Compilar
-```bash
+Foram criados 10 casos de testes sintaticamente corretos e incorretos.
+Para testa-los, o terminal, execute:
+
+###Compilação
+```
 gcc analisadorSin.c -o analisadorSin -Wall
+```
+###Execução
+```
+./analisadorSin TokensX.txt
+```
+OBS: Substitua X pelo número ou nome do arquivo de teste, por exemplo: Tokens1.txt.
+
+---
+## Autoras
+Kailane Lisley de Araújo Silva
+Gabrielly Gouveia da Silva Feitosa

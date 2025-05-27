@@ -35,7 +35,7 @@ Chamadas de função com argumentos
 Foram criados 10 casos de testes sintaticamente corretos e incorretos.
 Para testa-los, o terminal, execute:
 
-# Compilação
+### Compilação
 ```
 gcc analisadorSin.c -o analisadorSin -Wall
 ```
